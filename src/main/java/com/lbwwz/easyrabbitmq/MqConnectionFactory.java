@@ -1,4 +1,4 @@
-package com.lbwwz.simple_middleware;
+package com.lbwwz.easyrabbitmq;
 
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;

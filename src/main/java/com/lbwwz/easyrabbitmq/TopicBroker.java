@@ -1,4 +1,4 @@
-package com.lbwwz.simple_middleware;
+package com.lbwwz.easyrabbitmq;
 
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -11,10 +11,6 @@ public class TopicBroker extends AbstractBroker{
 
     protected TopicBroker(ConnectionFactory connectionFactory) {
         super(connectionFactory);
+        this.setExchange(new TopicExchange("",true,false));
     }
-
-
-
-
-
 }
