@@ -1,14 +1,12 @@
-package com.lbwwz.easyrabbitmq;
+package com.lbwwz.easyrabbitmq.core;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,30 +21,37 @@ import java.util.concurrent.TimeUnit;
  *
  * @author lbwwz
  */
-public abstract   class AbstractBroker implements BeanPostProcessor, Broker, ApplicationContextAware {
+public abstract class AbstractBroker implements Broker {
+
+    Logger logger = LoggerFactory.getLogger(Broker.class);
 
     protected ConnectionFactory connectionFactory;
-
-    private ApplicationContext applicationContext;
 
     /**
      * mq manager
      */
-    private RabbitAdmin rabbitAdmin;
+    private SimpleRabbitAdmin admin;
 
     protected Exchange exchange;
-    protected RabbitTemplate template;
-    protected Map<String, Queue> queueMap;
+    public RabbitTemplate template;
+    protected Map<String, Queue> queueRegistry;
 
 
-    protected AbstractBroker(ConnectionFactory connectionFactory) {
+    protected AbstractBroker(ConnectionFactory connectionFactory,SimpleRabbitAdmin admin) {
         this.connectionFactory = connectionFactory;
-        this.queueMap = new ConcurrentHashMap<>();
+        this.admin = admin;
+        this.queueRegistry = new ConcurrentHashMap<>();
     }
 
     protected void setExchange(Exchange exchange) {
-        this.exchange = exchange;
-        initRabbitTemplate();
+        if (exchange == null){
+            return;
+        }
+        //only init temple once
+        if(this.exchange == null){
+            this.exchange = exchange;
+            initRabbitTemplate();
+        }
     }
 
     /**
@@ -60,9 +65,8 @@ public abstract   class AbstractBroker implements BeanPostProcessor, Broker, App
         template.setExchange(exchange.getName());
     }
 
-
     public <T> void sendDelayMessage(String routingKey, T msg, int delay, TimeUnit timeUnit) {
-        if (delay < 0) {
+        if (delay <= 0) {
             template.convertAndSend(routingKey, msg);
             return;
         }
@@ -78,47 +82,32 @@ public abstract   class AbstractBroker implements BeanPostProcessor, Broker, App
         });
     }
 
+    public <T> void sendMessage(String routingKey, T msg) {
+            template.convertAndSend(routingKey, msg);
+    }
+
     private String makeQueueName(String messageName) {
         return exchange.getName() + "_" + messageName;
     }
 
+
     /**
-     * 生成队列
+     * 注册并绑定消息队列
+     * <p>注册监听的服务，若不存在队列，则需要先注册队列，并将其与exchange进行绑定</p>
      */
-    private void generateQueue(String name) {
+    public void generateAndBindQueue(String name,String routeKey) {
         String newQueueName = makeQueueName(name);
         try {
-            Queue queue = new Queue(newQueueName, exchange.isDurable());
-            this.queueMap.put(newQueueName, queue);
-
+            Queue queue = QueueBuilder.durable(newQueueName).build();
             //将队列和exchange进行绑定
-            initBinding(queue);
-        } catch (Exception ignore) {
+            Binding binding = BindingBuilder.bind(queue).to(this.exchange).with(routeKey).noargs();
+            this.queueRegistry.put(newQueueName, queue);
+        } catch (Exception ex) {
+            logger.info("出现异常，表示该队列已经被注册",ex);
         }
     }
 
-    private void initBinding(Queue queue) {
-
-//        BindingBuilder
-        BindingBuilder.bind(queue).to(this.exchange).with("asd");
-//        binding.and()
-
-    }
-
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
-    }
 
 
-    @Override
-    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-        return bean;
-    }
 
-    @Override
-    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-        this.rabbitAdmin = applicationContext.getBean(RabbitAdmin.class);
-        return bean;
-    }
 }

@@ -45,9 +45,9 @@
         <constructor-arg ref="connectionFactory" />
     </bean>
 
-    <bean id="topicBrokerService" class="com.lbwwz.easyrabbitmq.TopicBrokerServiceImpl">
-        <constructor-arg ref="connectionFactory"/>
-    </bean>
+    <!--<bean id="topicBrokerService" class="com.lbwwz.easyrabbitmq.TopicBrokerServiceImpl">-->
+        <!--<constructor-arg ref="connectionFactory"/>-->
+    <!--</bean>-->
 
 
 
