@@ -4,6 +4,7 @@ package com.lbwwz.easyrabbitmq;
 
 import com.lbwwz.easyrabbitmq.core.Broker;
 import com.lbwwz.easyrabbitmq.core.SimpleRabbitAdmin;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.amqp.core.Exchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.beans.BeansException;
@@ -16,6 +17,7 @@ import org.springframework.context.ApplicationContextAware;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
@@ -36,6 +38,7 @@ public class TopicBrokerServiceImpl implements TopicBrokerService,ApplicationCon
     public TopicBrokerServiceImpl(ConnectionFactory connectionFactory) {
         this.connectionFactory = connectionFactory;
         this.simpleRabbitAdmin = new SimpleRabbitAdmin(connectionFactory);
+        this.brokerRegistry = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -49,19 +52,22 @@ public class TopicBrokerServiceImpl implements TopicBrokerService,ApplicationCon
 
         @Override
     public <T> void publish(String topicName, String tag, T msg) {
-        //先创建 TopicBroker
+        //get TopicBroker,create it if not exist.
         Broker broker = brokerRegistry.get(getExchangeName(topicName));
         if(Objects.isNull(broker)){
             broker = new TopicBroker(topicName,connectionFactory,simpleRabbitAdmin);
             brokerRegistry.put(topicName,broker);
         }
-        //发送逻辑
+        //发送消息
+        broker.sendMessage(tag,msg);
     }
 
     @Override
     public <T> void subscribe(String topicName, String tag, String subscriptionName, int threadCount, Class<T> clazz, Consumer<T> msgHandler) {
-
-
+        if(StringUtils.isBlank(tag)){
+            //if without tag,set broker's binding type as fanout.
+            tag = "#";
+        }
 
     }
 

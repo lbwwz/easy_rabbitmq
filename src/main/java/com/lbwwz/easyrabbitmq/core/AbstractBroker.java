@@ -82,6 +82,7 @@ public abstract class AbstractBroker implements Broker {
         });
     }
 
+    @Override
     public <T> void sendMessage(String routingKey, T msg) {
             template.convertAndSend(routingKey, msg);
     }
