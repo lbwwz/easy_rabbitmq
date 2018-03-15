@@ -13,10 +13,16 @@ public interface QueueService {
      * @param threadCount
      * @param msgHandler
      */
-    void listen(
+    <T> void listen(
             String queueName,
             int threadCount,
-//            boolean enableDeadletter,
+            Consumer<T> msgHandler,
+            Class<T> clazz
+    );
+
+    <T> void listen(
+            String queueName,
+            int threadCount,
             Consumer<String> msgHandler
     );
 
