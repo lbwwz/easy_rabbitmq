@@ -5,11 +5,16 @@ package com.lbwwz.easyrabbitmq.util;
  */
 public class MqNameUtil {
 
+    /**
+     * 构造Exchange名称
+     * @param msgName 消息名
+     * @return
+     */
     public static String makeExchangeName(String msgName){
-        return null;
+            return "_exchange_"+msgName;
     }
 
     public static String makeQueueName(String msgName){
-        return null;
+        return "_queue_"+msgName;
     }
 }

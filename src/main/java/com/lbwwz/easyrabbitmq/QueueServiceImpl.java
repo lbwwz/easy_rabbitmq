@@ -1,9 +1,13 @@
 package com.lbwwz.easyrabbitmq;
 
 import com.alibaba.fastjson.JSONObject;
-import com.rabbitmq.client.*;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Envelope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -17,7 +21,7 @@ import java.util.function.Consumer;
  */
 public class QueueServiceImpl implements QueueService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(QueueService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(QueueServiceImpl.class);
 
     private ConnectionFactory connectionFactory;
 
@@ -40,7 +44,7 @@ public class QueueServiceImpl implements QueueService {
         Runnable listenAction = () -> {
             Channel channel = null;
             try {
-                channel = connectionFactory.newConnection().createChannel();
+                channel = connectionFactory.createConnection().createChannel(true);
                 channel.basicConsume(queueName, true, new DefaultConsumer(channel) {
                     @Override
                     public void handleDelivery(String consumerTag, Envelope envelope,

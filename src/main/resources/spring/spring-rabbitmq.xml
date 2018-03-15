@@ -41,7 +41,7 @@
         <!--<property name="executor" value="20"/>-->
     </bean>
 
-    <bean id="rabbitAdmin"  class="org.springframework.amqp.rabbit.core.RabbitAdmin">
+    <bean id="simpleRabbitAdmin"  class="com.lbwwz.easyrabbitmq.core.SimpleRabbitAdmin">
         <constructor-arg ref="connectionFactory" />
     </bean>
 

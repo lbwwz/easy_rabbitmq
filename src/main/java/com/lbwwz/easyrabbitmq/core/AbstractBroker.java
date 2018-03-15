@@ -1,5 +1,6 @@
 package com.lbwwz.easyrabbitmq.core;
 
+import com.lbwwz.easyrabbitmq.util.MqNameUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.*;
@@ -36,6 +37,11 @@ public abstract class AbstractBroker implements Broker {
     public RabbitTemplate template;
     protected Map<String, Queue> queueRegistry;
 
+    @Override
+    public Queue getRegisteredQueue(String tag, String listenerName) {
+        return queueRegistry.get(tag+"_"+listenerName);
+    }
+
 
     protected AbstractBroker(ConnectionFactory connectionFactory,SimpleRabbitAdmin admin) {
         this.connectionFactory = connectionFactory;
@@ -50,6 +56,7 @@ public abstract class AbstractBroker implements Broker {
         //only init temple once
         if(this.exchange == null){
             this.exchange = exchange;
+            admin.declareExchange(exchange);
             initRabbitTemplate();
         }
     }
@@ -65,6 +72,7 @@ public abstract class AbstractBroker implements Broker {
         template.setExchange(exchange.getName());
     }
 
+    @Override
     public <T> void sendDelayMessage(String routingKey, T msg, int delay, TimeUnit timeUnit) {
         if (delay <= 0) {
             template.convertAndSend(routingKey, msg);
@@ -87,17 +95,13 @@ public abstract class AbstractBroker implements Broker {
             template.convertAndSend(routingKey, msg);
     }
 
-    private String makeQueueName(String messageName) {
-        return exchange.getName() + "_" + messageName;
-    }
-
-
     /**
      * 注册并绑定消息队列
      * <p>注册监听的服务，若不存在队列，则需要先注册队列，并将其与exchange进行绑定</p>
      */
     public void generateAndBindQueue(String name,String routeKey) {
-        String newQueueName = makeQueueName(name);
+        String newQueueName = MqNameUtil.makeQueueName(name);
+        //先检验队列是否存在，若不存在，则定义队列
         try {
             Queue queue = QueueBuilder.durable(newQueueName).build();
             //将队列和exchange进行绑定
@@ -107,8 +111,5 @@ public abstract class AbstractBroker implements Broker {
             logger.info("出现异常，表示该队列已经被注册",ex);
         }
     }
-
-
-
 
 }

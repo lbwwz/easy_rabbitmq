@@ -1,6 +1,9 @@
 package com.lbwwz.easyrabbitmq.core;
 
 
+import org.springframework.amqp.core.Queue;
+
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -9,6 +12,14 @@ import java.util.concurrent.TimeUnit;
  * @author lbwwz
  */
 public interface Broker {
+
+    /**
+     *
+     * @param tag
+     * @param listenerName
+     * @return
+     */
+    Queue getRegisteredQueue(String tag,String listenerName);
 
 
     /**
