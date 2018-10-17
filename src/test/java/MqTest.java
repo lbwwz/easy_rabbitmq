@@ -79,6 +79,7 @@ public class MqTest {
         Exchange exchange = ExchangeBuilder.topicExchange("lbwwz_test_exchange").build();
         Queue queue = QueueBuilder.durable("lbwwz_test_queue").build();
         Binding binding = BindingBuilder.bind(queue).to(exchange).with("#.123").noargs();
+        simpleRabbitAdmin.declareExchange(exchange);
         simpleRabbitAdmin.declareBinding(binding);
     }
 

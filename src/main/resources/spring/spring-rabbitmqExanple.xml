@@ -85,7 +85,7 @@
         <constructor-arg index="1" value="QUEUE"/>
         <constructor-arg index="2" value="testExchange"/>
         <constructor-arg index="3" value="testQueue"/>
-        <constructor-arg index="4" value="#{arguments}"></constructor-arg>
+        <constructor-arg index="4" value="#{arguments}"/>
     </bean>
 
     <!--<rabbit:queue name="test_delay_queue" />-->
