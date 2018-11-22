@@ -1,27 +1,23 @@
-import com.lbwwz.easyrabbitmq.TopicBroker;
+import java.util.concurrent.TimeUnit;
+
 import com.lbwwz.easyrabbitmq.core.SimpleRabbitAdmin;
+import com.rabbitmq.client.ConnectionFactory;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.amqp.core.*;
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author lbwwz
  */
 
 @RunWith(SpringJUnit4ClassRunner.class)
-
 @ContextConfiguration(locations = {"classpath:spring/spring-rabbitmq.xml"})
 public class MqTest {
 
-    @Autowired
+
     private ConnectionFactory connectionFactory;
 
     @Test
@@ -80,7 +76,9 @@ public class MqTest {
         Queue queue = QueueBuilder.durable("lbwwz_test_queue").build();
         Binding binding = BindingBuilder.bind(queue).to(exchange).with("#.123").noargs();
         simpleRabbitAdmin.declareExchange(exchange);
+        simpleRabbitAdmin.declareQueue(queue);
         simpleRabbitAdmin.declareBinding(binding);
+
     }
 
 

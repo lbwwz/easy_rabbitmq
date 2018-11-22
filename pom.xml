@@ -209,12 +209,12 @@
             </exclusions>
         </dependency>
 
-        <!-- rabbitmq -->
-        <dependency>
-            <groupId>org.springframework.amqp</groupId>
-            <artifactId>spring-rabbit</artifactId>
-            <version>1.6.5.RELEASE</version>
-        </dependency>
+        <!--&lt;!&ndash; rabbitmq &ndash;&gt;-->
+        <!--<dependency>-->
+            <!--<groupId>org.springframework.amqp</groupId>-->
+            <!--<artifactId>spring-rabbit</artifactId>-->
+            <!--<version>1.6.5.RELEASE</version>-->
+        <!--</dependency>-->
         <dependency>
             <groupId>com.rabbitmq</groupId>
             <artifactId>amqp-client</artifactId>

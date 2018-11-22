@@ -17,8 +17,6 @@ public class MqConnectionFactory {
     private String userName;
     private String password;
 
-//    private CacheConnection
-
     /**
      *
      */
