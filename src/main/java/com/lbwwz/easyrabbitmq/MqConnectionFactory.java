@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
 /**
- *
+ * 待改造，需要支持连接池技术
  * @author lbwwz.
  */
 public class MqConnectionFactory {

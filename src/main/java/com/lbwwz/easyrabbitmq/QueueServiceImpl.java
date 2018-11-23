@@ -14,7 +14,7 @@ public class QueueServiceImpl implements QueueService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(QueueServiceImpl.class);
 
-    private AbstractBrokerServiceImpl abstractBrokerServiceImpl;
+    private AbstractBrokerMessageProcessImpl abstractBrokerServiceImpl;
 
 
 

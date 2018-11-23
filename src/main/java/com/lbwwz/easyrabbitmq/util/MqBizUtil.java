@@ -3,7 +3,7 @@ package com.lbwwz.easyrabbitmq.util;
 /**
  * @author lbwwz
  */
-public class MqNameUtil {
+public class MqBizUtil {
 
     private final static String EXCHANGE_TAG = "_exchange_";
     private final static String QUEUE_TAG = "_queue_";
@@ -30,4 +30,7 @@ public class MqNameUtil {
         }
         return queueName.toString();
     }
+
+
+
 }

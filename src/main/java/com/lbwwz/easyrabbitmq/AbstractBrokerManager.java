@@ -1,10 +1,12 @@
-package com.lbwwz.easyrabbitmq.core;
+package com.lbwwz.easyrabbitmq;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeoutException;
 
+import com.lbwwz.easyrabbitmq.core.Binding;
+import com.lbwwz.easyrabbitmq.core.Exchange;
+import com.lbwwz.easyrabbitmq.core.Queue;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConnectionFactory;
 import org.apache.commons.lang3.StringUtils;
@@ -16,21 +18,37 @@ import org.slf4j.LoggerFactory;
  *
  * @author lbwwz
  */
-public class SimpleRabbitAdmin {
+public class AbstractBrokerManager implements BrokerManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(SimpleRabbitAdmin.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractBrokerManager.class);
 
     private static final String DELAYED_MESSAGE_EXCHANGE = "x-delayed-message";
     private static final String AMQP_PRE = "amq.";
 
     private static final String DEFAULT_EXCHANGE_NAME = "";
-    private ConnectionFactory connectionFactory;
+    protected ConnectionFactory connectionFactory;
 
-    public SimpleRabbitAdmin(ConnectionFactory connectionFactory) {
+    public AbstractBrokerManager(ConnectionFactory connectionFactory) {
         this.connectionFactory = connectionFactory;
 
     }
 
+    public AbstractBrokerManager(String host, String userName, String password, String vHost) {
+        if (this.connectionFactory == null) {
+            this.connectionFactory = new ConnectionFactory();
+            connectionFactory.setHost(host);
+            connectionFactory.setUsername(userName);
+            connectionFactory.setPassword(password);
+            connectionFactory.setVirtualHost(vHost);
+            /**
+             * 网络故障自动连接恢复
+             */
+            connectionFactory.setAutomaticRecoveryEnabled(true);
+        }
+    }
+
+
+    @Override
     public void declareExchange(final Channel channel, final Exchange exchange) throws IOException {
         if (logger.isDebugEnabled()) {
             logger.debug("declaring exchange '" + exchange.getName() + "'");
@@ -60,6 +78,7 @@ public class SimpleRabbitAdmin {
         }
     }
 
+    @Override
     public void declareQueue(final Channel channel, final Queue queue) throws IOException {
 
         if (logger.isDebugEnabled()) {
@@ -89,6 +108,7 @@ public class SimpleRabbitAdmin {
         }
     }
 
+    @Override
     public void declareBinding(final Channel channel, final Binding binding) throws IOException {
 
         if (logger.isDebugEnabled()) {
