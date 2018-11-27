@@ -1,7 +1,9 @@
 package com.lbwwz.easyrabbitmq;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -11,9 +13,11 @@ import java.util.function.Consumer;
 
 import com.alibaba.fastjson.JSONObject;
 
-import com.lbwwz.easyrabbitmq.util.MqBizUtil;
+import com.lbwwz.easyrabbitmq.core.DestinationFactory.ExchangeBuilder;
+import com.lbwwz.easyrabbitmq.core.Exchange;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.AMQP.BasicProperties.Builder;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
@@ -25,6 +29,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 /**
+ * <p>
+ * 性能排序：fanout > direct >> topic。比例大约为11：10：6
+ * </p>
+ *
  * @author lbwwz
  */
 public class AbstractBrokerMessageProcessImpl extends AbstractBrokerManager
@@ -33,6 +41,8 @@ public class AbstractBrokerMessageProcessImpl extends AbstractBrokerManager
     private static final Logger LOGGER = LoggerFactory.getLogger(QueueServiceImpl.class);
 
     private final static int DEFAULT_LISTEN_THREAD_COUNT = 5;
+
+    private final static String MESSAGE_CONTENT_TYPE = "application/json";
 
     public AbstractBrokerMessageProcessImpl(String host, String userName, String password, String vHost) {
         super(host, userName, password, vHost);
@@ -52,12 +62,35 @@ public class AbstractBrokerMessageProcessImpl extends AbstractBrokerManager
     //尝试创建之后将已经创建成功的exchange记录在这里
 
     @Override
-    public <T> void publish(String exchange, String routingKey, boolean mandatory, BasicProperties props, T msg)
-        throws IOException, TimeoutException {
+    public <T> void publish(String exchangeName, String exchangeType, String routingKey, long delayTime, T msg) {
 
+        this.publish(exchangeName, exchangeType, routingKey, delayTime, msg);
     }
 
-    @SuppressWarnings("unche")
+    public <T> void publish(String exchangeName, String exchangeType, String routingKey, Long delayTime, T msg) {
+        Exchange exchange = new ExchangeBuilder().name(exchangeName).type(exchangeType).delayed(delayTime != null)
+            .build();
+        try {
+            Channel channel = getChannel();
+            declareExchange(channel, exchange);
+            Builder propsBuilder = new Builder().contentType(MESSAGE_CONTENT_TYPE);
+            if (exchange.isDelayed()) {
+                //延时消息设置延迟时间
+                Map<String, Object> headers = new HashMap<>();
+                headers.put("x-delay", delayTime);
+                propsBuilder.headers(headers);
+            }
+            channel.basicPublish(exchange.getName(), routingKey, propsBuilder.build(), JSONObject.toJSONBytes(msg));
+        } catch (IOException | TimeoutException e) {
+            // todo 异常
+
+        }
+    }
+
+    public <T> void publish(String exchangeName, String exchangeType, String routingKey, T msg) {
+        this.publish(exchangeName, exchangeType, routingKey, null, msg);
+    }
+
     @Override
     public <T> void consume(String queue,
                             boolean autoAck,
@@ -72,18 +105,36 @@ public class AbstractBrokerMessageProcessImpl extends AbstractBrokerManager
         // 多线程支持
         List<Thread> threadList = new ArrayList<>();
         for (int i = 1; i <= threadCount; ++i) {
-
-            Thread thread = new Thread(new ConsumeMassageHandle<T>(queue, isStopping,i, clazz, msgHandler));
+            Thread thread = new Thread(
+                new ConsumeMassageHandle<>(queue, isStopping, consumerTag + i, arguments, clazz, msgHandler));
             thread.start();
             threadList.add(thread);
         }
+        addShutDownHookForConsumer(queue, isStopping, threadList);
 
+    }
+
+    public <T> void consume(String queue,
+                            int threadCount,
+                            Class<T> clazz,
+                            Consumer<T> msgHandler) {
+
+        // 定义停机信号
+        AtomicBoolean isStopping = new AtomicBoolean();
+        // 多线程支持
+        List<Thread> threadList = new ArrayList<>();
+        for (int i = 1; i <= threadCount; ++i) {
+            Thread thread = new Thread(
+                new ConsumeMassageHandle<>(queue, isStopping, i + "", null, clazz, msgHandler));
+            thread.start();
+            threadList.add(thread);
+        }
         addShutDownHookForConsumer(queue, isStopping, threadList);
 
     }
 
     /**
-     * @param queue
+     * @param queue      队列名称
      * @param isStopping 任务结束标的标记
      * @param threadList 需要等待释放操作的线程
      */
@@ -132,14 +183,19 @@ public class AbstractBrokerMessageProcessImpl extends AbstractBrokerManager
         private Class<T> clazz;
         private Consumer<T> msgHandler;
         private String consumerTag;
+        private Map<String, Object> arguments;
+        //事务消息拓展点
+        private boolean autoAck;
 
-        public ConsumeMassageHandle(String queueName, AtomicBoolean isStopping, int tagIndex, Class<T> clazz,
+        public ConsumeMassageHandle(String queueName, AtomicBoolean isStopping, String tagTail,
+                                    Map<String, Object> arguments, Class<T> clazz,
                                     Consumer<T> msgHandler) {
             this.queueName = queueName;
             this.isStopping = isStopping;
+            this.arguments = arguments;
             this.clazz = clazz;
             this.msgHandler = msgHandler;
-            this.consumerTag = queueName + "-" + tagIndex;
+            this.consumerTag = queueName + "-" + tagTail;
         }
 
         @Override
@@ -147,27 +203,28 @@ public class AbstractBrokerMessageProcessImpl extends AbstractBrokerManager
             Channel channel = null;
             try {
                 channel = getChannel();
-                channel.basicConsume(queueName, true,consumerTag, new DefaultConsumer(channel) {
-                    @Override
-                    public void handleDelivery(String consumerTag, Envelope envelope,
-                                               AMQP.BasicProperties properties, byte[] body) throws IOException {
-                        if (isStopping.get()) {
-                            LOGGER.info("停机信号收到, 退出消息消费处理. queueName: {}", queueName);
-                            return;
-                        }
-                        try {
-                            String message = new String(body, "UTF-8");
-                            if (clazz != String.class) {
-                                T t = JSONObject.parseObject(message, clazz);
-                                msgHandler.accept(t);
-                            } else {
-                                msgHandler.accept((T)message);
+                channel.basicConsume(queueName, autoAck, consumerTag, false, false, arguments,
+                    new DefaultConsumer(channel) {
+                        @Override
+                        public void handleDelivery(String consumerTag, Envelope envelope,
+                                                   AMQP.BasicProperties properties, byte[] body) throws IOException {
+                            if (isStopping.get()) {
+                                LOGGER.info("停机信号收到, 退出消息消费处理. queueName: {}", queueName);
+                                return;
                             }
-                        } catch (Exception ex) {
-                            //todo 处理失败，这里可以做一些补偿处理
+                            try {
+                                String message = new String(body, "UTF-8");
+                                if (clazz != String.class) {
+                                    T t = JSONObject.parseObject(message, clazz);
+                                    msgHandler.accept(t);
+                                } else {
+                                    msgHandler.accept((T)message);
+                                }
+                            } catch (Exception ex) {
+                                //todo 处理失败，这里可以做一些补偿处理
+                            }
                         }
-                    }
-                });
+                    });
             } catch (Exception ex) {
                 LOGGER.error(String.format("监听消息出现错误. 10秒钟后重新连接. queueName: %s", queueName), ex);
                 try {

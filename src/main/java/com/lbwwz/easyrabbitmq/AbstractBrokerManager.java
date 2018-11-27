@@ -7,6 +7,7 @@ import java.util.Map;
 import com.lbwwz.easyrabbitmq.core.Binding;
 import com.lbwwz.easyrabbitmq.core.Exchange;
 import com.lbwwz.easyrabbitmq.core.Queue;
+import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConnectionFactory;
 import org.apache.commons.lang3.StringUtils;
@@ -18,7 +19,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author lbwwz
  */
-public class AbstractBrokerManager implements BrokerManager {
+public abstract class AbstractBrokerManager implements BrokerManager {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractBrokerManager.class);
 
@@ -126,5 +127,6 @@ public class AbstractBrokerManager implements BrokerManager {
             //绑定的对象不存在或者绑定失败
         }
     }
+
 
 }
