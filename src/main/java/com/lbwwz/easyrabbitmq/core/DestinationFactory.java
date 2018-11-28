@@ -70,8 +70,7 @@ public class DestinationFactory {
         }
 
         public Exchange build() {
-            Exchange exchange;
-
+            AbstractExchange exchange;
             if (BuiltinExchangeType.DIRECT.name().equalsIgnoreCase(this.type)) {
                 exchange = new DirectExchange(name, durable, autoDelete, arguments);
             } else if (BuiltinExchangeType.FANOUT.name().equalsIgnoreCase(this.type)) {
@@ -79,10 +78,8 @@ public class DestinationFactory {
             } else {
                 exchange = new TopicExchange(name, durable, autoDelete, arguments) {};
             }
-            if (this.delayed) {
-                //exchange.
-            } else {
-            }
+            exchange.setDelayed(this.delayed);
+            exchange.setDelayed(this.internal);
             return exchange;
         }
 

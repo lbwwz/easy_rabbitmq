@@ -7,19 +7,22 @@ import java.util.Map;
 import com.lbwwz.easyrabbitmq.core.Binding;
 import com.lbwwz.easyrabbitmq.core.Exchange;
 import com.lbwwz.easyrabbitmq.core.Queue;
-import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.ShutdownSignalException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 
 /**
  * 添加运行时对 Exchange 和Queue 的定义和绑定功能
  *
  * @author lbwwz
  */
-public abstract class AbstractBrokerManager implements BrokerManager {
+public abstract class AbstractBrokerManager implements BrokerManager,ApplicationContextAware {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractBrokerManager.class);
 
@@ -29,25 +32,17 @@ public abstract class AbstractBrokerManager implements BrokerManager {
     private static final String DEFAULT_EXCHANGE_NAME = "";
     protected ConnectionFactory connectionFactory;
 
-    public AbstractBrokerManager(ConnectionFactory connectionFactory) {
-        this.connectionFactory = connectionFactory;
+    public AbstractBrokerManager() { }
 
-    }
 
-    public AbstractBrokerManager(String host, String userName, String password, String vHost) {
-        if (this.connectionFactory == null) {
-            this.connectionFactory = new ConnectionFactory();
-            connectionFactory.setHost(host);
-            connectionFactory.setUsername(userName);
-            connectionFactory.setPassword(password);
-            connectionFactory.setVirtualHost(vHost);
-            /**
-             * 网络故障自动连接恢复
-             */
-            connectionFactory.setAutomaticRecoveryEnabled(true);
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        ConnectionFactory connectionFactory = applicationContext.getBean(ConnectionFactory.class);
+        if(connectionFactory == null){
+            throw new RuntimeException("未配置connectionFactory,启动mq连接失败！");
         }
+        this.connectionFactory = connectionFactory;
     }
-
 
     @Override
     public void declareExchange(final Channel channel, final Exchange exchange) throws IOException {
@@ -70,11 +65,16 @@ public abstract class AbstractBrokerManager implements BrokerManager {
                     channel.exchangeDeclare(exchange.getName(), exchange.getType(), exchange.isDurable(),
                         exchange.isAutoDelete(), exchange.isInternal(), exchange.getArguments());
                 }
-            } catch (IOException ignore) {
-                if (logger.isDebugEnabled()) {
-                    logger.error("Exception while declaring exchange: '" + exchange.getName() + "'", ignore);
-                }
+            } catch (IOException ex) {
                 //重复定义持久化Exchange
+                if(ex.getCause() instanceof ShutdownSignalException){
+                    logger.info("exchange exist:"+exchange.toString());
+                }else{
+                    if (logger.isDebugEnabled()) {
+                        logger.error("Exception while declaring exchange: '" + exchange.getName() + "'", ex);
+                    }
+                    throw ex;
+                }
             }
         }
     }
