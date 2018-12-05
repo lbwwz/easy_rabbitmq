@@ -150,6 +150,7 @@ public class QueueServiceImpl extends AbstractBrokerManager implements QueueServ
             this.consumerTag = queueName + "-" + tagTail;
         }
 
+
         @Override
         public void run() {
             Channel channel = null;
@@ -176,6 +177,7 @@ public class QueueServiceImpl extends AbstractBrokerManager implements QueueServ
                             } catch (Exception ex) {
                                 // 处理失败，消息重新入队，等待下一次重试
                                 getChannel().basicNack(envelope.getDeliveryTag(), false, true);
+
                             }
                         }
                     });

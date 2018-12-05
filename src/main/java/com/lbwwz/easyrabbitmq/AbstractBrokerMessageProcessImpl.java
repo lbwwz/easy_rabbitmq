@@ -1,33 +1,21 @@
 package com.lbwwz.easyrabbitmq;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 import com.alibaba.fastjson.JSONObject;
 
 import com.lbwwz.easyrabbitmq.core.DestinationFactory.ExchangeBuilder;
 import com.lbwwz.easyrabbitmq.core.Exchange;
-import com.lbwwz.easyrabbitmq.util.MqBizUtil;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.AMQP.BasicProperties.Builder;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 
 /**
  * <p>
@@ -45,6 +33,7 @@ public abstract class AbstractBrokerMessageProcessImpl extends AbstractBrokerMan
 
     private final static String MESSAGE_CONTENT_TYPE = "application/json";
 
+
     public AbstractBrokerMessageProcessImpl() {
         super();
     }
@@ -58,7 +47,6 @@ public abstract class AbstractBrokerMessageProcessImpl extends AbstractBrokerMan
 
     @Override
     public <T> void publish(String exchangeName, String exchangeType, String routingKey, long delayTime, T msg) {
-
         this.publish(exchangeName, exchangeType, routingKey, delayTime, msg);
     }
 
