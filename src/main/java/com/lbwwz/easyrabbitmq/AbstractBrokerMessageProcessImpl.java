@@ -38,9 +38,13 @@ public abstract class AbstractBrokerMessageProcessImpl extends AbstractBrokerMan
         super();
     }
 
-    private Channel getChannel() throws IOException, TimeoutException {
-        Connection connection = connectionFactory.newConnection();
-        return connection.createChannel();
+    private Channel getChannelWithoutTransaction() throws IOException, TimeoutException {
+        return cacheConnectionFactory.generateConnectionCacheChannel(false);
+
+    }
+
+    private Channel getChannelWithTransaction() throws IOException, TimeoutException {
+        return cacheConnectionFactory.generateConnectionCacheChannel(true);
 
     }
     //尝试创建之后将已经创建成功的exchange记录在这里
@@ -64,7 +68,7 @@ public abstract class AbstractBrokerMessageProcessImpl extends AbstractBrokerMan
         Exchange exchange = new ExchangeBuilder().name(exchangeName).type(exchangeType).delayed(delayTime != null)
             .build();
         try {
-            Channel channel = getChannel();
+            Channel channel = getChannelWithoutTransaction();
             declareExchange(channel, exchange);
             Builder propsBuilder = new Builder().contentType(MESSAGE_CONTENT_TYPE);
             if (exchange.isDelayed()) {

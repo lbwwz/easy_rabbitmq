@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.lbwwz.easyrabbitmq.cache.MqCacheConnectionFactory;
 import com.lbwwz.easyrabbitmq.core.Binding;
 import com.lbwwz.easyrabbitmq.core.Exchange;
 import com.lbwwz.easyrabbitmq.core.Queue;
@@ -30,18 +31,18 @@ public abstract class AbstractBrokerManager implements BrokerManager,Application
     private static final String AMQP_PRE = "amq.";
 
     private static final String DEFAULT_EXCHANGE_NAME = "";
-    protected ConnectionFactory connectionFactory;
+    protected MqCacheConnectionFactory cacheConnectionFactory;
 
     public AbstractBrokerManager() { }
 
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        ConnectionFactory connectionFactory = applicationContext.getBean(ConnectionFactory.class);
-        if(connectionFactory == null){
-            throw new RuntimeException("未配置connectionFactory,启动mq连接失败！");
+        MqCacheConnectionFactory mqCacheConnectionFactory = applicationContext.getBean(MqCacheConnectionFactory.class);
+        if(mqCacheConnectionFactory == null){
+            throw new RuntimeException("未配置mqCacheConnectionFactory,启动mq连接失败！");
         }
-        this.connectionFactory = connectionFactory;
+        this.cacheConnectionFactory = mqCacheConnectionFactory;
     }
 
     @Override
