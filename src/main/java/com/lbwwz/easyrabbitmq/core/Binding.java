@@ -1,8 +1,16 @@
 package com.lbwwz.easyrabbitmq.core;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+
+import com.google.common.collect.Lists;
+import com.lbwwz.easyrabbitmq.util.Constant;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.ListUtils;
+import org.apache.commons.lang3.ArrayUtils;
 
 /**
  * @author lbwwz
@@ -21,7 +29,17 @@ public class Binding {
         this.queue = queue;
         this.exchange = exchange;
         this.arguments = arguments;
-        this.routingKeys = Arrays.asList(routingKeys);
+
+        List<String> routingKeyList = Lists.newArrayList(routingKeys);
+
+        routingKeyList.removeIf(Objects::isNull);
+
+        if(CollectionUtils.isEmpty(routingKeyList)){
+            this.routingKeys = Collections.singletonList(Constant.DEFAULT_ROUTING_KEY);
+        }else{
+            this.routingKeys = routingKeyList;
+        }
+
     }
 
     public String getQueue() {

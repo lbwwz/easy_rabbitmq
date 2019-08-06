@@ -9,8 +9,10 @@ import java.util.concurrent.TimeoutException;
 
 import com.alibaba.fastjson.JSONObject;
 
+import com.lbwwz.easyrabbitmq.cache.MqConnectionFactory;
 import com.lbwwz.easyrabbitmq.core.DestinationFactory.ExchangeBuilder;
 import com.lbwwz.easyrabbitmq.core.Exchange;
+import com.lbwwz.easyrabbitmq.util.MqBizUtil;
 import com.rabbitmq.client.AMQP.BasicProperties.Builder;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -39,7 +41,9 @@ public abstract class AbstractBrokerMessageProcessImpl extends AbstractBrokerMan
     }
 
     private Channel getChannelWithoutTransaction() throws IOException, TimeoutException {
-        return cacheConnectionFactory.generateConnectionCacheChannel(false);
+        Connection connection = MqConnectionFactory.getInstance().getConnection();
+        return connection.createChannel();
+        //return cacheConnectionFactory.generateConnectionCacheChannel(false);
 
     }
 
@@ -47,12 +51,7 @@ public abstract class AbstractBrokerMessageProcessImpl extends AbstractBrokerMan
         return cacheConnectionFactory.generateConnectionCacheChannel(true);
 
     }
-    //尝试创建之后将已经创建成功的exchange记录在这里
 
-    @Override
-    public <T> void publish(String exchangeName, String exchangeType, String routingKey, long delayTime, T msg) {
-        this.publish(exchangeName, exchangeType, routingKey, delayTime, msg);
-    }
 
     /**
      * 具体的消息发送的实现方法
@@ -64,8 +63,9 @@ public abstract class AbstractBrokerMessageProcessImpl extends AbstractBrokerMan
      * @param msg
      * @param <T>
      */
+    @Override
     public <T> void publish(String exchangeName, String exchangeType, String routingKey, Long delayTime, T msg) {
-        Exchange exchange = new ExchangeBuilder().name(exchangeName).type(exchangeType).delayed(delayTime != null)
+        Exchange exchange = new ExchangeBuilder().name(MqBizUtil.makeExchangeName(exchangeName)).type(exchangeType).delayed(delayTime != null)
             .build();
         try {
             Channel channel = getChannelWithoutTransaction();

@@ -50,22 +50,25 @@ public class MqCacheConnectionFactory {
     private final ConnectionFactory connectionFactory;
 
     /**
-     * 标记当前连接池与mq服务连接是否中断
+     * 标记当前连接池与mq服务连接是否中断 todo 考虑做动态重连
      */
-    private volatile AtomicBoolean isInterruptIed = new AtomicBoolean(false);
-
-    //ShutdownListener
+    private volatile AtomicBoolean isInterrupted = new AtomicBoolean(false);
+    //使用ShutdownListener
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MqCacheConnectionFactory.class);
     /**
      * 一个连接所包含的最大channel数量
      */
-    private final static int CONNECTION_CHANNEL_MAX_SIZE = 10;
+    private static final int CONNECTION_CHANNEL_MAX_SIZE = 10;
 
-    //非事务的连接
+    /**
+     * 非事务支持的的连接
+     */
     private final LinkedBlockingQueue<ChannelCachingConnectionProxy> generallyConnectionQueue
         = new LinkedBlockingQueue<>();
-    //启用事务的连接
+    /**
+     * 启用事务支持的连接
+     */
     private final LinkedBlockingQueue<ChannelCachingConnectionProxy> transactionalConnectionQueue
         = new LinkedBlockingQueue<>();
 
@@ -74,7 +77,7 @@ public class MqCacheConnectionFactory {
         channelCachingConnectionWithChannelListMapper = new HashMap<>();
 
     /**
-     * 作为守护线程，负责维护指定的connection中的channel
+     * 作为守护线程，负责维护指定的connection中的channel todo 设计为动态配置
      */
     ExecutorService executorService = Executors.newCachedThreadPool();
 
@@ -94,7 +97,7 @@ public class MqCacheConnectionFactory {
     }
 
     /**
-     * @param isTransactional 是否活支持事务
+     * @param isTransactional 是否支持事务
      * @return {@link ChannelCachingConnectionProxy}
      */
     private synchronized ChannelCachingConnectionProxy getChannelCachingConnectionProxy(boolean isTransactional) {
@@ -119,16 +122,22 @@ public class MqCacheConnectionFactory {
     }
 
     /**
-     * 根据是否事务选择
+     * 根据是否支持事务选择
      *
-     * @param isTransactional 是否活支持事务
+     * @param isTransactional 是否支持事务
      */
     private LinkedBlockingQueue<ChannelCachingConnectionProxy> pickActiveCachingConnectionQueue(
         boolean isTransactional) {
         return isTransactional ? this.transactionalConnectionQueue : this.generallyConnectionQueue;
     }
 
+    /**
+     * Connection 连接的代理类
+     */
     private class ChannelCachingConnectionProxy {
+        /**
+         * 连接是否支出事务
+         */
         private volatile boolean isTransactional;
         private volatile boolean isOpen;
         private volatile AtomicBoolean isFull = new AtomicBoolean(false);
@@ -146,6 +155,8 @@ public class MqCacheConnectionFactory {
             return target;
         }
 
+
+
         private ChannelProxy getCacheChannel() {
             synchronized (ChannelCachingConnectionProxy.this) {
                 ChannelProxy channelProxy = null;
@@ -159,19 +170,21 @@ public class MqCacheConnectionFactory {
                         new ChannelProxyInvocationHandler(ChannelCachingConnectionProxy.this.target,
                             ChannelCachingConnectionProxy.this.isTransactional));
                     channels.add(channelProxy);
-
-                } catch (InterruptedException e2) {
+                } catch (InterruptedException ex) {
                     //中断异常，表示信号量使用完毕，需要重新创建一个 ChannelCachingConnectionProxy
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("当前连接所创建的 channel 已达到上限");
-                    }
-                    //当前头元素因为channel数满而出队
-                    pickActiveCachingConnectionQueue(this.isTransactional).poll();
-                    isFull.set(true);
+                    LOGGER.warn("Interrupted!", ex);
+                    Thread.currentThread().interrupt();
+
                 }
                 return channelProxy;
             }
         }
+        //if (LOGGER.isDebugEnabled()) {
+        //    LOGGER.debug("当前连接所创建的 channel 已达到上限");
+        //}
+        ////当前头元素因为channel数满而出队
+        //pickActiveCachingConnectionQueue(this.isTransactional).poll();
+        //            isFull.set(true);
 
         @Override
         public boolean equals(Object o) {

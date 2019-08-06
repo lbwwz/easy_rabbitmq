@@ -32,6 +32,7 @@ public class MqBizUtil {
         StringBuilder queueName = new StringBuilder(destinationTag);
         queueName.append(msgName);
         for (String arg : args) {
+            queueName.append("/");
             queueName.append(arg);
         }
         return queueName.toString();

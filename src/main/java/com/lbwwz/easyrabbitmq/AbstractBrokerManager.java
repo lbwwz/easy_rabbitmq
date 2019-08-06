@@ -38,17 +38,17 @@ public abstract class AbstractBrokerManager implements BrokerManager,Application
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        MqCacheConnectionFactory mqCacheConnectionFactory = applicationContext.getBean(MqCacheConnectionFactory.class);
-        if(mqCacheConnectionFactory == null){
-            throw new RuntimeException("未配置mqCacheConnectionFactory,启动mq连接失败！");
-        }
-        this.cacheConnectionFactory = mqCacheConnectionFactory;
+        //MqCacheConnectionFactory mqCacheConnectionFactory = applicationContext.getBean(MqCacheConnectionFactory.class);
+        //if(mqCacheConnectionFactory == null){
+        //    throw new RuntimeException("未配置mqCacheConnectionFactory,启动mq连接失败！");
+        //}
+        //this.cacheConnectionFactory = mqCacheConnectionFactory;
     }
 
     @Override
     public void declareExchange(final Channel channel, final Exchange exchange) throws IOException {
         if (logger.isDebugEnabled()) {
-            logger.debug("declaring exchange '" + exchange.getName() + "'");
+            logger.debug("declaring exchange '{}'",exchange.getName());
         }
         if (!DEFAULT_EXCHANGE_NAME.equals(exchange.getName())) {
             try {
@@ -69,10 +69,10 @@ public abstract class AbstractBrokerManager implements BrokerManager,Application
             } catch (IOException ex) {
                 //重复定义持久化Exchange
                 if(ex.getCause() instanceof ShutdownSignalException){
-                    logger.info("exchange exist:"+exchange.toString());
+                    logger.info("exchange exist:{}",exchange.getName());
                 }else{
                     if (logger.isDebugEnabled()) {
-                        logger.error("Exception while declaring exchange: '" + exchange.getName() + "'", ex);
+                        logger.error("Exception while declaring exchange: '{}'",exchange.getName(), ex);
                     }
                     throw ex;
                 }
@@ -84,11 +84,11 @@ public abstract class AbstractBrokerManager implements BrokerManager,Application
     public void declareQueue(final Channel channel, final Queue queue) throws IOException {
 
         if (logger.isDebugEnabled()) {
-            logger.debug("declaring queue '" + queue.getName() + "'");
+            logger.debug("declaring queue '{}'", queue.getName());
         }
         if (StringUtils.isNotBlank(queue.getName())) {
             if (logger.isDebugEnabled()) {
-                logger.debug("declaring Queue '" + queue.getName() + "'");
+                logger.debug("declaring Queue '{}'",queue.getName());
             }
             try {
                 channel.queueDeclare(queue.getName(), queue.isDurable(), queue.isExclusive(), queue
@@ -96,7 +96,7 @@ public abstract class AbstractBrokerManager implements BrokerManager,Application
                     queue.getArguments());
             } catch (IllegalArgumentException e) {
                 if (logger.isDebugEnabled()) {
-                    logger.error("Exception while declaring queue: '" + queue.getName() + "'");
+                    logger.error("Exception while declaring queue: '{}'",queue.getName());
                 }
                 //try {
                 //    channel.close();
@@ -128,6 +128,4 @@ public abstract class AbstractBrokerManager implements BrokerManager,Application
             //绑定的对象不存在或者绑定失败
         }
     }
-
-
 }

@@ -25,7 +25,7 @@ public interface BrokerMessageProcess {
      * @throws IOException
      * @throws TimeoutException
      */
-    <T> void publish(String exchangeName, String exchangeType, String routingKey, long delayTime, T msg);
+    <T> void publish(String exchangeName, String exchangeType, String routingKey, Long delayTime, T msg);
 
 
 

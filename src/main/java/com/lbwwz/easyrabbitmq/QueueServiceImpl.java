@@ -1,10 +1,13 @@
 package com.lbwwz.easyrabbitmq;
 
+import com.lbwwz.easyrabbitmq.cache.MqConnectionFactory;
+import com.lbwwz.easyrabbitmq.core.Binding;
+import com.lbwwz.easyrabbitmq.core.Queue;
 import com.lbwwz.easyrabbitmq.util.MqBizUtil;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import org.slf4j.Logger;
@@ -31,7 +34,7 @@ public class QueueServiceImpl extends AbstractBrokerManager implements QueueServ
     private static final Logger LOGGER = LoggerFactory.getLogger(QueueServiceImpl.class);
 
     private Channel getChannel() throws IOException, TimeoutException {
-        Connection connection = connectionFactory.newConnection();
+        Connection connection = MqConnectionFactory.getInstance().getConnection();
         return connection.createChannel();
 
     }
@@ -42,7 +45,7 @@ public class QueueServiceImpl extends AbstractBrokerManager implements QueueServ
                             Class<T> clazz,
                             Consumer<T> msgHandler) {
 
-        consume(msgTitle,consumerTag,null,threadCount,clazz,msgHandler);
+        consume(msgTitle, consumerTag, null, threadCount, clazz, msgHandler);
     }
 
     @Override
@@ -53,13 +56,26 @@ public class QueueServiceImpl extends AbstractBrokerManager implements QueueServ
                             Class<T> clazz,
                             Consumer<T> msgHandler) {
         String queueName = MqBizUtil.makeQueueName(msgTitle);
+        String exchangeName = MqBizUtil.makeExchangeName(msgTitle);
         //定义队列和绑定队列到exchange
+
+        try {
+            Channel channel = getChannel();
+            Queue queue = new Queue(queueName);
+            Binding binding = new Binding( queueName,exchangeName, null, consumerTag);
+            declareQueue(channel, queue);
+            declareBinding(channel, binding);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        }
 
         // 定义停机信号
         AtomicBoolean isStopping = new AtomicBoolean();
         // 多线程支持
         List<Thread> threadList = new ArrayList<>();
-        for (int i = 1; i <= threadCount;i++) {
+        for (int i = 1; i <= threadCount; i++) {
             Thread thread = new Thread(
                 new ConsumeMassageHandle<>(queueName, isStopping, consumerTag + i, arguments, clazz, msgHandler));
             thread.start();
@@ -150,7 +166,6 @@ public class QueueServiceImpl extends AbstractBrokerManager implements QueueServ
             this.consumerTag = queueName + "-" + tagTail;
         }
 
-
         @Override
         public void run() {
             Channel channel = null;
@@ -200,7 +215,11 @@ public class QueueServiceImpl extends AbstractBrokerManager implements QueueServ
                         break;
                     }
                     TimeUnit.MILLISECONDS.sleep(100);
-                } catch (Exception ignore) {
+                } catch (Exception ex) {
+                    if (ex instanceof AlreadyClosedException) {
+                        LOGGER.warn("channel is already closed due to channel error");
+                    }
+                    break;
                 }
             }
         }

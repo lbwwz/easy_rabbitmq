@@ -10,6 +10,9 @@
 
     <context:property-placeholder location="classpath:/rabbitmq.properties" ignore-unresolvable="true"/>
 
+    <bean id="queueService" class="com.lbwwz.easyrabbitmq.QueueServiceImpl"/>
+    <bean id="mqConnectionFactory" class="com.lbwwz.easyrabbitmq.cache.MqConnectionFactory"/>
 
+    <bean id="defaultBrokerMessageProcess" class="com.lbwwz.easyrabbitmq.DefaultBrokerMessageProcessImpl"/>
 
 </beans>

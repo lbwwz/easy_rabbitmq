@@ -2,6 +2,7 @@ package com.lbwwz.easyrabbitmq.core;
 
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.Assert;
 
 /**
@@ -65,5 +66,7 @@ public class Queue {
         return "Queue [name=" + this.name + ", durable=" + this.durable + ", autoDelete=" + this.autoDelete
             + ", exclusive=" + this.exclusive + ", arguments=" + this.arguments + "]";
     }
+
+
 
 }
