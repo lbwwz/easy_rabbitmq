@@ -12,7 +12,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- common libs -->
-        <spring_version>4.3.3.RELEASE</spring_version>
+        <spring_version>5.3.19</spring_version>
         <dubbo_version>2.5.4</dubbo_version>
         <mybatis_version>3.2.7</mybatis_version>
         <mybatis_spring_version>1.2.2</mybatis_spring_version>
